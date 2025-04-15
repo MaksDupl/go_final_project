@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"net/http"
 )
 
 type Task struct {
@@ -32,6 +31,33 @@ func AddTask(task *Task) (int64, error) {
 	return id, err
 }
 
-func TaskHandler(w http.ResponseWriter, r *http.Request) {
+func Tasks(limit int) ([]*Task, error) {
+	query := `
+		SELECT id, date, title, comment, repeat
+		FROM scheduler
+		ORDER BY date ASC
+		LIMIT ?
+	`
 
+	rows, err := DB.Query(query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tasks []*Task
+
+	for rows.Next() {
+		var t Task
+		if err := rows.Scan(&t.ID, &t.Date, &t.Title, &t.Comment, &t.Repeat); err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, &t)
+	}
+
+	if tasks == nil {
+		tasks = []*Task{}
+	}
+
+	return tasks, nil
 }
